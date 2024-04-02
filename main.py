@@ -37,15 +37,7 @@ class TrainAndLoggingCallback(BaseCallback):
         return True
 
 
-# done = True
-# for step in range(5000):
-#     if done:
-#         state = env.reset()
-#     state, reward, done, truncated, info = env.step(env.action_space.sample())
-#     print(state, reward, done, truncated, info)
-#     env.render()
-#
-
+# LEARN
 
 CHECKPOINT_DIR = './train/'
 LOG_DIR = './logs/'
@@ -53,3 +45,12 @@ callback = TrainAndLoggingCallback(check_freq=10000, save_path=CHECKPOINT_DIR)
 model = PPO('CnnPolicy', env, verbose=1, tensorboard_log=LOG_DIR, learning_rate=0.000001, n_steps=512)
 model.learn(total_timesteps=1000000, callback=callback)
 env.close()
+
+# LOAD MODEL
+
+# model = PPO.load('./train/best_model_50000')
+# state = env.reset()
+# while True:
+#     action, _ = model.predict(state)
+#     state, reward, done, info = env.step(action)
+#     env.render()
