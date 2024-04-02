@@ -11,9 +11,9 @@ from matplotlib import pyplot as plt
 
 
 
-env = gym_super_mario_bros.make('SuperMarioBros-v0')
+env = gym_super_mario_bros.make('SuperMarioBros-v3', apply_api_compatibility=True)
 env = JoypadSpace(env, SIMPLE_MOVEMENT)
-
+JoypadSpace.reset = lambda self, **kwargs: self.env.reset(**kwargs)
 env = GrayScaleObservation(env, keep_dim=True)
 
 env = DummyVecEnv([lambda: env])
@@ -51,7 +51,5 @@ CHECKPOINT_DIR = './train/'
 LOG_DIR = './logs/'
 callback = TrainAndLoggingCallback(check_freq=10000, save_path=CHECKPOINT_DIR)
 model = PPO('CnnPolicy', env, verbose=1, tensorboard_log=LOG_DIR, learning_rate=0.000001, n_steps=512)
-
 model.learn(total_timesteps=1000000, callback=callback)
-
 env.close()
