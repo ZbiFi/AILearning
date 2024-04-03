@@ -20,7 +20,7 @@ import mapWorld
 from mapTile import MapTile
 
 world = mapWorld.MapWorld()
-colorVariant = cv2.COLOR_RGB2BGR
+colorVariant = cv2.IMREAD_COLOR
 
 def findAllWindows():
     for x in pyautogui.getAllWindows():
@@ -78,7 +78,7 @@ def takeSreenShoot(civWindowTitle):
 
 def checkIfImageHasObj(image, template):
 
-    print(image.shape)
+    # print(image.shape)
     image = cv2.cvtColor(image, colorVariant)
     template = cv2.cvtColor(template, colorVariant)
 
@@ -86,16 +86,20 @@ def checkIfImageHasObj(image, template):
     # plt.imshow(image)
     # plt.figure()
     # plt.imshow(template)
+    # plt.imshow(heat_map)
     # plt.show()
     # print(heat_map)
-    print(np.amax(heat_map))
+    print(f'    {np.amax(heat_map)}')
 
-    threshold = 0.85
+    threshold = 0.40
     if np.amax(heat_map) > threshold:
-        h, w, _ = template.shape
+
+        # h, w = template.shape
+        h, w, _ = template.shape[::-1]
+
         y, x = np.unravel_index(np.argmax(heat_map), heat_map.shape)
 
-        print(x, y)
+        # print(x, y)
 
         # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 5)
         #
@@ -110,81 +114,104 @@ def checkIfImageHasObj(image, template):
 def findShapes(mode, checkingTileOrUnit = None):
 
     if mode == 0:
-        image = plt.imread('test_1.png')
-        template = plt.imread('units/settler.png')
+        image = cv2.imread('test_1.png')
+        template = cv2.imread('units/settler.png')
 
         return checkIfImageHasObj(image, template)
 
     if mode == 1:
         image = checkingTileOrUnit
-
+        tileSizeX = 32
+        tileSizeY = 32
+        tileSizeXRecuder = 10
+        tileSizeYRecuder = 10
         files = glob.glob("tiles/*.png")
 
         counter = 0
+
+        rowIndex = 0
+        image = image[0 + tileSizeYRecuder:tileSizeY - tileSizeYRecuder, 0 + tileSizeXRecuder:tileSizeX - tileSizeXRecuder, :]
+        # for row in image:
+        #     columnIndex = 0
+        #     for column in row:
+        #         if numpy.array([0, 0, 0]) in column and (columnIndex < 10 or 20 < columnIndex < 30) and (rowIndex < 10 or 20 < rowIndex < 30):
+        #             counter += 1
+        #             if counter > 20:
+        #                 image = image[0 + tileSizeYRecuder:tileSizeY - tileSizeYRecuder, 0 + tileSizeXRecuder:tileSizeX - tileSizeXRecuder, :]
+        #                 break
+        #         columnIndex += 1
+        #     rowIndex += 1
+        #     if counter > 20:
+        #         break
+
         # loop over list
         for f in files:
-            template = plt.imread(f)
+            template = cv2.imread(f)
 
-            # image[image[:, :, 0] <= 0.35, 0] = 0.40
-            # image[image[:, :, 1] <= 0.35, 1] = 0.7
-            # image[image[:, :, 2] <= 0.35, 2] = 0.18
-            print(image.shape)
-            rowIndex = 0
-            for row in image:
-                columnIndex = 0
-                for column in row:
-                    if numpy.array([0, 0, 0]) in column and (columnIndex < 10 or 20 < columnIndex < 30) and (rowIndex < 10 or 20 < rowIndex < 30):
-                        counter += 1
-                    columnIndex +=1
-                rowIndex +=1
-            print(counter)
+            # image[(image[:, :, 0] <= 0.35) & (image[:, :, 1] <= 0.35) & (image[:, :, 2] <= 0.35)] = [0.44, 0.57, 0.18]
+            # print(image.shape)
+
+            # print(counter)
             foundX, foundY = checkIfImageHasObj(image, template)
 
-            plt.imshow(image)
-            plt.figure()
-            plt.imshow(template)
-            plt.show()
+            # plt.imshow(image)
+            # plt.figure()
+            # plt.imshow(template)
+            # plt.show()
 
             if foundX >= 0 and foundY >= 0:
-                print(f)
+                # plt.imshow(image)
+                # plt.figure()
+                # plt.imshow(template)
+                # plt.show()
+                print(f'--->Found {f}')
                 return foundX, foundY, f.replace('tiles\\', '')
             else:
-                print('Nieznany Tile')
+
+                print(f'    {f} - Nieznany Tile ')
 
 def analyzeStartingPosition(x, y):
 
+
     if x >= 0 and y >= 0:
 
-        # for i, j in zip(range(-1, 2), range(-1, 2)):
-            tileSizeX = 32
-            tileSizeY = 32
-            tileOffsetX = tileSizeX * 0
-            tileOffsetY = tileSizeY * -1
-            im = plt.imread('test_0.png')
-            plt.axis('off')
-            startingPoint = im[y+tileOffsetY:y+tileSizeY+tileOffsetY, x+tileOffsetX:x+tileSizeX++tileOffsetX, :]
-            knownTileX, knownTileY, file = findShapes(1, startingPoint)
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                print(f'i: {i} j:{j}')
+                tileSizeX = 32
+                tileSizeY = 32
+                tileOffsetX = tileSizeX * j
+                tileOffsetY = tileSizeY * i
+                im = cv2.imread('test_0.png')
+                plt.axis('off')
+                # print(im)
+                startingPoint = im[y+tileOffsetY:y+tileSizeY+tileOffsetY, x+tileOffsetX:x+tileSizeX++tileOffsetX, :]
 
-            if knownTileX == 0 and knownTileY == 0:
-                tileEnum = findRightMapTileEnum(file)
-                if tileEnum != -1:
-                    mapTile = MapTile(0, 0, tileEnum)
-                    world.appendMapTile(mapTile)
-                    print(world)
-                else:
-                    print('Enum error')
+                # imgplot = plt.imshow(startingPoint)
+                # plt.show()
+                knownTileX, knownTileY, file = findShapes(1, startingPoint)
+
+                # imgplot = plt.imshow(startingPoint)
+                # plt.show()
+                if knownTileX >= 0 and knownTileY >= 0:
+                    tileEnum = findRightMapTileEnum(file)
+                    if tileEnum != -1:
+                        mapTile = MapTile(j, i, tileEnum)
+                        world.appendMapTile(mapTile)
+                    else:
+                        print('Enum error')
 
         # cv2.rectangle(im, (x, y), (x + tileSizeX, y + tileSizeY), (0, 0, 255), 5)
-        # imgplot = plt.imshow(startingPoint)
-        # plt.show()
+
+    print(world)
 
 def findRightMapTileEnum(tileUrl):
 
     for e in mapTiles.MapTilesEnums:
         if e.value[1] == tileUrl:
             return e
-        else:
-            return -1
+
+    return -1
 
 def click(civWindow):
 
