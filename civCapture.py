@@ -9,7 +9,7 @@ import pyautogui
 import win32api
 import win32con
 import win32gui
-
+import pytesseract
 from ctypes import windll
 import win32ui
 import matplotlib.pyplot as plt
@@ -18,6 +18,7 @@ from PIL import Image
 import mapTiles
 import mapWorld
 from mapTile import MapTile
+from player import Player
 
 world = mapWorld.MapWorld()
 colorVariant = cv2.IMREAD_COLOR
@@ -29,7 +30,7 @@ def findAllWindows():
 
 def takeSreenShoot(civWindowTitle):
     variable = 0
-
+    fileName = ''
     for i in range(2):
         hwnd = win32gui.FindWindow(None, civWindowTitle.title)
 
@@ -71,10 +72,14 @@ def takeSreenShoot(civWindowTitle):
         win32gui.ReleaseDC(hwnd, hwndDC)
 
         if result == 1:
+            fileName = f'test_{variable}.png'
             # PrintWindow Succeeded
             im.save(f'test_{variable}.png')
         variable += 1
-        sleep(0.05)
+        sleep(0.1)
+    variable-= 1
+    if fileName != '':
+        getPlayerName(f'test_{variable}.png')
 
 def checkIfImageHasObj(image, template):
 
@@ -89,42 +94,44 @@ def checkIfImageHasObj(image, template):
     # plt.imshow(heat_map)
     # plt.show()
     # print(heat_map)
-    print(f'    {np.amax(heat_map)}')
 
-    threshold = 0.40
-    if np.amax(heat_map) > threshold:
-
-        # h, w = template.shape
-        h, w, _ = template.shape[::-1]
-
-        y, x = np.unravel_index(np.argmax(heat_map), heat_map.shape)
-
-        # print(x, y)
-
-        # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 5)
-        #
-        # plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        #
-        # plt.show()
-
-        return x, y
-    else:
-        return -1, -1
+    # threshold = 0.5
+    # if np.amax(heat_map) > threshold:
+    #
+    #     # h, w = template.shape
+    #     h, w, _ = template.shape[::-1]
+    #
+    #     y, x = np.unravel_index(np.argmax(heat_map), heat_map.shape)
+    #
+    #     # print(x, y)
+    #
+    #     # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 5)
+    #     #
+    #     # plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    #     #
+    #     # plt.show()
+    #
+    #     return heat_map
+    # else:
+    return heat_map
 
 def findShapes(mode, checkingTileOrUnit = None):
 
     if mode == 0:
-        image = cv2.imread('test_1.png')
+        image = cv2.imread('test_0.png')
         template = cv2.imread('units/settler.png')
 
-        return checkIfImageHasObj(image, template)
+        heat_map = checkIfImageHasObj(image, template)
+        foundY, foundX = np.unravel_index(np.argmax(heat_map), heat_map.shape)
+        return foundX, foundY
 
     if mode == 1:
+        tilesSimilarity = []
         image = checkingTileOrUnit
         tileSizeX = 32
         tileSizeY = 32
-        tileSizeXRecuder = 10
-        tileSizeYRecuder = 10
+        tileSizeXRecuder = 6
+        tileSizeYRecuder = 6
         files = glob.glob("tiles/*.png")
 
         counter = 0
@@ -152,27 +159,34 @@ def findShapes(mode, checkingTileOrUnit = None):
             # print(image.shape)
 
             # print(counter)
-            foundX, foundY = checkIfImageHasObj(image, template)
-
+            heat_map = checkIfImageHasObj(image, template)
+            foundY, foundX = np.unravel_index(np.argmax(heat_map), heat_map.shape)
+            print(f'    {np.amax(heat_map):.3f} {f}')
             # plt.imshow(image)
             # plt.figure()
             # plt.imshow(template)
             # plt.show()
+            tilesSimilarity.append([np.amax(heat_map), f, foundX, foundY])
 
-            if foundX >= 0 and foundY >= 0:
-                # plt.imshow(image)
-                # plt.figure()
-                # plt.imshow(template)
-                # plt.show()
-                print(f'--->Found {f}')
-                return foundX, foundY, f.replace('tiles\\', '')
-            else:
+        tilesSimilarity = sorted(tilesSimilarity, key=lambda x: x[0])
 
-                print(f'    {f} - Nieznany Tile ')
+        if tilesSimilarity[len(tilesSimilarity)-1][2] >= 0 and tilesSimilarity[len(tilesSimilarity)-1][3] >= 0:
+            # plt.imshow(image)
+            # plt.figure()
+            # plt.imshow(template)
+            # plt.show()
+            print(f'--->Found {tilesSimilarity[len(tilesSimilarity)-1][1]}')
+            return tilesSimilarity[len(tilesSimilarity)-1][2], tilesSimilarity[len(tilesSimilarity)-1][3], tilesSimilarity[len(tilesSimilarity)-1][1].replace('tiles\\', '')
+        else:
+
+            print(f'    {f} - Nieznany Tile ')
+
+        tilesSimilarity = sorted(tilesSimilarity, key=lambda x: x[0])
+        print(tilesSimilarity[len(tilesSimilarity)-1])
 
 def analyzeStartingPosition(x, y):
 
-
+    fileRepo = []
     if x >= 0 and y >= 0:
 
         for i in range(-1, 2):
@@ -182,7 +196,7 @@ def analyzeStartingPosition(x, y):
                 tileSizeY = 32
                 tileOffsetX = tileSizeX * j
                 tileOffsetY = tileSizeY * i
-                im = cv2.imread('test_0.png')
+                im = cv2.imread('test_1.png')
                 plt.axis('off')
                 # print(im)
                 startingPoint = im[y+tileOffsetY:y+tileSizeY+tileOffsetY, x+tileOffsetX:x+tileSizeX++tileOffsetX, :]
@@ -190,7 +204,7 @@ def analyzeStartingPosition(x, y):
                 # imgplot = plt.imshow(startingPoint)
                 # plt.show()
                 knownTileX, knownTileY, file = findShapes(1, startingPoint)
-
+                fileRepo.append(file)
                 # imgplot = plt.imshow(startingPoint)
                 # plt.show()
                 if knownTileX >= 0 and knownTileY >= 0:
@@ -200,7 +214,8 @@ def analyzeStartingPosition(x, y):
                         world.appendMapTile(mapTile)
                     else:
                         print('Enum error')
-
+    for repo in fileRepo:
+        print(repo)
         # cv2.rectangle(im, (x, y), (x + tileSizeX, y + tileSizeY), (0, 0, 255), 5)
 
     print(world)
@@ -220,7 +235,43 @@ def click(civWindow):
     pyautogui.moveTo(civWindow.topleft.x + 250, civWindow.topleft.y + 150, duration = 0)
     pyautogui.click(civWindow.topleft.x + 50, civWindow.topleft.y + 50)
 
-# click(findAllWindows())
-# takeSreenShoot(findAllWindows())
-x,y = findShapes(0)
-analyzeStartingPosition(x, y)
+def getPlayerName(fileName):
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    image = cv2.imread(fileName)
+    image = image[195:215, 0:150, :]
+    img = Image.fromarray(image, 'RGB')
+    text = pytesseract.image_to_string(img, lang='eng')
+    print(text)
+    newPlayer = Player(text)
+    world.appendPlayer(newPlayer)
+    # plt.figure()
+    # plt.imshow(image)
+    # plt.show()
+
+def createCity(x,y):
+
+    pyautogui.press('b')
+    sleep(0.5)
+    newCityNumber = len(world.getPlayerCivilization().getCities()) + 1
+    newCityName = f'city{newCityNumber}'
+    for char in newCityName:
+        pyautogui.press(char)
+        sleep(0.1)
+    pyautogui.press('enter')
+    sleep(2)
+    pyautogui.press('space')
+
+mode = 2
+cordX, cordY = 0, 0
+if mode == 0:
+    click(findAllWindows())
+    takeSreenShoot(findAllWindows())
+    # mode = 2
+if mode == 1:
+    cordX, cordY = findShapes(0)
+    analyzeStartingPosition(cordX, cordY)
+if mode == 2:
+    click(findAllWindows())
+    takeSreenShoot(findAllWindows())
+    createCity(cordX, cordY)
+    # print(world)
