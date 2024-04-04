@@ -236,11 +236,12 @@ def click(civWindow):
     pyautogui.click(civWindow.topleft.x + 50, civWindow.topleft.y + 50)
 
 def getPlayerName(fileName):
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-    image = cv2.imread(fileName)
-    image = image[195:215, 0:150, :]
-    img = Image.fromarray(image, 'RGB')
-    text = pytesseract.image_to_string(img, lang='eng')
+    # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    # image = cv2.imread(fileName)
+    # image = image[195:215, 0:150, :]
+    # img = Image.fromarray(image, 'RGB')
+    # text = pytesseract.image_to_string(img, lang='eng')
+    text = 'TEST'
     print(text)
     newPlayer = Player(text)
     world.appendPlayer(newPlayer)
@@ -261,7 +262,7 @@ def createCity(x,y):
     sleep(2)
     pyautogui.press('space')
 
-mode = 2
+mode = 1
 cordX, cordY = 0, 0
 if mode == 0:
     click(findAllWindows())
