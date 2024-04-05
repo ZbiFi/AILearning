@@ -15,70 +15,19 @@ import win32ui
 import matplotlib.pyplot as plt
 from PIL import Image
 
+import buffor
 import cities
+import inputControlMng
 import mapTiles
 import mapWorld
-from controlMng import click, findAllWindows
+from inputControlMng import click, findAllWindows
 from mapTile import MapTile
 from player import Player
 
 world = mapWorld.MapWorld()
+bufforSS = buffor.Buffor()
 colorVariant = cv2.IMREAD_COLOR
 
-
-def createSSBuffor(civWindowTitle):
-    variable = 0
-    fileName = ''
-    for i in range(2):
-        hwnd = win32gui.FindWindow(None, civWindowTitle.title)
-
-        # Uncomment the following line if you use a high DPI display or >100% scaling size
-        # windll.user32.SetProcessDPIAware()
-
-        # Change the line below depending on whether you want the whole window
-        # or just the client area.
-        # left, top, right, bot = win32gui.GetClientRect(hwnd)
-        left, top, right, bot = win32gui.GetWindowRect(hwnd)
-        w = right - left
-        h = bot - top - 29
-
-        hwndDC = win32gui.GetWindowDC(hwnd)
-        mfcDC = win32ui.CreateDCFromHandle(hwndDC)
-        saveDC = mfcDC.CreateCompatibleDC()
-
-        saveBitMap = win32ui.CreateBitmap()
-        saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
-
-        saveDC.SelectObject(saveBitMap)
-
-        # Change the line below depending on whether you want the whole window
-        # or just the client area.
-        # result = windll.user32.PrintWindow(hwnd, saveDC.GetSafeHdc(), 1)
-        result = windll.user32.PrintWindow(hwnd, saveDC.GetSafeHdc(), 3)
-
-        bmpinfo = saveBitMap.GetInfo()
-        bmpstr = saveBitMap.GetBitmapBits(True)
-
-        im = Image.frombuffer(
-            'RGB',
-            (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
-            bmpstr, 'raw', 'BGRX', 0, 1)
-
-        win32gui.DeleteObject(saveBitMap.GetHandle())
-        saveDC.DeleteDC()
-        mfcDC.DeleteDC()
-        win32gui.ReleaseDC(hwnd, hwndDC)
-
-        if result == 1:
-            fileName = f'buffor_{variable}.png'
-            # PrintWindow Succeeded
-            im.save(f'buffor_{variable}.png')
-
-        variable += 1
-        sleep(0.1)
-    variable-= 1
-    if fileName != '':
-        getPlayerName(f'buffor_{variable}.png')
 
 def checkIfImageHasObj(image, template):
 
@@ -116,11 +65,18 @@ def checkIfImageHasObj(image, template):
 
 def findShapes(mode, checkingTileOrUnit = None):
 
-    if mode == 0:
-        image = cv2.imread('buffor_0.png')
-        template = cv2.imread('units/settler.png')
+    image = cv2.imread(bufforSS.getBuffor()[0])
 
+    if mode == 0:
+
+        template = cv2.imread('units/settler.png')
         heat_map = checkIfImageHasObj(image, template)
+
+        if np.amax(heat_map) < 0.8:
+            image2 = cv2.imread(bufforSS.getBuffor()[1])
+            heat_map = checkIfImageHasObj(image2, template)
+        else:
+            image = cv2.imread(bufforSS.getBuffor()[1])
         foundY, foundX = np.unravel_index(np.argmax(heat_map), heat_map.shape)
         return foundX, foundY
 
@@ -195,7 +151,7 @@ def analyzeStartingPosition(x, y):
                 tileSizeY = 32
                 tileOffsetX = tileSizeX * j
                 tileOffsetY = tileSizeY * i
-                im = cv2.imread('buffor_1.png')
+                im = cv2.imread(bufforSS.getBuffor()[0])
                 plt.axis('off')
                 # print(im)
                 startingPoint = im[y+tileOffsetY:y+tileSizeY+tileOffsetY, x+tileOffsetX:x+tileSizeX++tileOffsetX, :]
@@ -243,16 +199,8 @@ def getPlayerName(fileName):
 
 def createCity(x,y):
 
-    pyautogui.press('b')
-    sleep(0.5)
-    newCityNumber = len(world.getPlayerCivilization().getCities()) + 1
-    newCityName = f'city{newCityNumber}'
-    for char in newCityName:
-        pyautogui.press(char)
-        sleep(0.1)
-    pyautogui.press('enter')
-    sleep(2)
-    pyautogui.press('space')
+    newCityName = controlMng.createCity(world)
+
     newCity = cities.city(newCityName, x, y, world.getPlayerCivilization())
     world.getPlayerCivilization().addNewCity(newCity)
     world.getTileOnCords(x, y)
@@ -261,13 +209,13 @@ mode = 1
 cordX, cordY = 0, 0
 if mode == 0:
     click(findAllWindows())
-    createSSBuffor(findAllWindows())
+    bufforSS.createSSBuffor(findAllWindows())
     # mode = 2
 if mode == 1:
     cordX, cordY = findShapes(0)
     analyzeStartingPosition(cordX, cordY)
 if mode == 2:
     click(findAllWindows())
-    createSSBuffor(findAllWindows())
+    bufforSS.createSSBuffor(findAllWindows())
     createCity(cordX, cordY)
     # print(world)
