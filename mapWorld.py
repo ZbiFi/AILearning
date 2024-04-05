@@ -17,3 +17,9 @@ class MapWorld:
 
     def getPlayerCivilization(self):
         return self.playersAlive[0]
+
+    def getTileOnCords(self, x, y):
+
+        for tile in self.mapTiles:
+            if tile.getCords() == (x, y):
+                return tile.getTileFundation()

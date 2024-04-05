@@ -8,3 +8,8 @@ class MapTile:
         self.cityName = ''
         self.units = []
 
+    def getCords(self):
+        return self.cordX, self.cordY
+
+    def getTileFundation(self):
+        return self.tile

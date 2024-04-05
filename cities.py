@@ -1,4 +1,4 @@
-class Player:
+class city:
 
     def __init__(self, name, x, y, player):
         self.cityName = name

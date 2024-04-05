@@ -13,3 +13,7 @@ class Player:
 
     def getCities(self):
         return self.cities
+
+    def addNewCity(self, city):
+
+        self.cities.append()

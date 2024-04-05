@@ -15,20 +15,18 @@ import win32ui
 import matplotlib.pyplot as plt
 from PIL import Image
 
+import cities
 import mapTiles
 import mapWorld
+from controlMng import click, findAllWindows
 from mapTile import MapTile
 from player import Player
 
 world = mapWorld.MapWorld()
 colorVariant = cv2.IMREAD_COLOR
 
-def findAllWindows():
-    for x in pyautogui.getAllWindows():
-        if 'Program:' in x.title and 'CIV' in x.title:
-            return (x)
 
-def takeSreenShoot(civWindowTitle):
+def createSSBuffor(civWindowTitle):
     variable = 0
     fileName = ''
     for i in range(2):
@@ -72,14 +70,15 @@ def takeSreenShoot(civWindowTitle):
         win32gui.ReleaseDC(hwnd, hwndDC)
 
         if result == 1:
-            fileName = f'test_{variable}.png'
+            fileName = f'buffor_{variable}.png'
             # PrintWindow Succeeded
-            im.save(f'test_{variable}.png')
+            im.save(f'buffor_{variable}.png')
+
         variable += 1
         sleep(0.1)
     variable-= 1
     if fileName != '':
-        getPlayerName(f'test_{variable}.png')
+        getPlayerName(f'buffor_{variable}.png')
 
 def checkIfImageHasObj(image, template):
 
@@ -118,7 +117,7 @@ def checkIfImageHasObj(image, template):
 def findShapes(mode, checkingTileOrUnit = None):
 
     if mode == 0:
-        image = cv2.imread('test_0.png')
+        image = cv2.imread('buffor_0.png')
         template = cv2.imread('units/settler.png')
 
         heat_map = checkIfImageHasObj(image, template)
@@ -196,7 +195,7 @@ def analyzeStartingPosition(x, y):
                 tileSizeY = 32
                 tileOffsetX = tileSizeX * j
                 tileOffsetY = tileSizeY * i
-                im = cv2.imread('test_1.png')
+                im = cv2.imread('buffor_1.png')
                 plt.axis('off')
                 # print(im)
                 startingPoint = im[y+tileOffsetY:y+tileSizeY+tileOffsetY, x+tileOffsetX:x+tileSizeX++tileOffsetX, :]
@@ -228,13 +227,6 @@ def findRightMapTileEnum(tileUrl):
 
     return -1
 
-def click(civWindow):
-
-    hwnd = win32gui.FindWindowEx(0, 0, 0, civWindow.title)
-    win32gui.SetForegroundWindow(hwnd)
-    pyautogui.moveTo(civWindow.topleft.x + 250, civWindow.topleft.y + 150, duration = 0)
-    pyautogui.click(civWindow.topleft.x + 50, civWindow.topleft.y + 50)
-
 def getPlayerName(fileName):
     # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
     # image = cv2.imread(fileName)
@@ -261,18 +253,21 @@ def createCity(x,y):
     pyautogui.press('enter')
     sleep(2)
     pyautogui.press('space')
+    newCity = cities.city(newCityName, x, y, world.getPlayerCivilization())
+    world.getPlayerCivilization().addNewCity(newCity)
+    world.getTileOnCords(x, y)
 
 mode = 1
 cordX, cordY = 0, 0
 if mode == 0:
     click(findAllWindows())
-    takeSreenShoot(findAllWindows())
+    createSSBuffor(findAllWindows())
     # mode = 2
 if mode == 1:
     cordX, cordY = findShapes(0)
     analyzeStartingPosition(cordX, cordY)
 if mode == 2:
     click(findAllWindows())
-    takeSreenShoot(findAllWindows())
+    createSSBuffor(findAllWindows())
     createCity(cordX, cordY)
     # print(world)
